@@ -47,7 +47,8 @@ Everything is stored encrypted on your own device. There is no server, no accoun
 ### Web-specific risks
 - **Browser storage can be cleared** (by the user, or by Safari after a long period without use when the app isn't installed).
   Mitigation: install as a PWA, persistent storage, backup reminders.
-- **Biometric unlock** isn't available in phase 0. Plan: WebAuthn with the PRF extension to unlock with Face ID / fingerprint.
+- **Biometric unlock** uses a passkey with the WebAuthn PRF extension. It needs Chrome/Edge/Android or Safari 18+; elsewhere the passphrase is the only option.
+- **Shared files** (Android share target) wait unencrypted in the service worker cache until the app is unlocked, then are deleted.
 - **Supply chain:** the hosted code could in theory change. Mitigation: open source, few dependencies, and an option to self-host the static build.
 
 ## Architecture
@@ -62,13 +63,20 @@ Everything is stored encrypted on your own device. There is no server, no accoun
 
 | Phase | Scope | Status |
 |---|---|---|
-| **0. Foundation** | Vite/React PWA, encrypted vault, passphrase setup and lock screen, auto-lock, data model, accounts, manual transactions, encrypted backup/restore, erase device | **Done (prototype)** |
-| **1. Import** | CSV import: file picker and drag-and-drop, column mapping, saved bank templates, date/amount format detection, duplicate detection, preview, undo an import. Web Share Target so Android can share a CSV straight into the app | Next |
-| **2. Track** | Rules engine, review inbox, payee cleanup, spending charts, transfers between accounts, splits | |
-| **3. Budget** | Zero-based budgeting first, then envelope and 50/30/20; rollovers and sinking funds | |
-| **4. Plan** | Recurring and subscription detection, bill calendar, goals, debt payoff planner, cash-flow forecast | |
-| **5. Wealth** | Manual assets and liabilities, net worth history, retirement projections, multi-currency totals | |
-| **6. Polish** | Monthly recap, learned categorization, biometric unlock (WebAuthn PRF), OFX/QIF import, CSV export, keyboard shortcuts | |
+| **0. Foundation** | Vite/React PWA, encrypted vault, passphrase setup and lock screen, auto-lock, data model, accounts, manual transactions, encrypted backup/restore, erase device | Done |
+| **1. Import** | CSV import with delimiter, header, column and date-format detection; signed or money-in/money-out amounts; saved bank layouts; duplicate detection on re-import; preview; undo an import; Android share target | Done |
+| **2. Track** | Rules engine, review inbox, payee cleanup, learned categorization, transfer detection and linking, split transactions, search and filters, spending charts | Done |
+| **3. Budget** | Zero-based and envelope budgeting with rollover, move money between categories, monthly and save-by-date targets, 50/30/20, tracking-only mode | Done |
+| **4. Plan** | Recurring bill, subscription and income detection (weekly to yearly, twice-monthly pay), price-rise alerts, bill calendar, goals, avalanche vs snowball debt planner, cash-flow forecast | Done |
+| **5. Wealth** | Assets and debts valued by hand (property, vehicles, investments), net worth history, manual exchange rates, Monte Carlo retirement projection | Done |
+| **6. Polish** | Monthly recap, biometric unlock (WebAuthn PRF passkey), OFX/QFX and QIF import, CSV export, keyboard shortcuts, backup reminders | Done |
+
+### Ideas for later
+- Device-to-device sync over the local network (no server)
+- Reports builder with saved reports
+- Investment holdings import from brokerage CSVs
+- Receipt photos attached to transactions (stored encrypted)
+- Localisation (languages, number and date formats)
 
 ## Trade-offs accepted
 

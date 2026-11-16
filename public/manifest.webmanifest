@@ -8,6 +8,34 @@
   "background_color": "#f5f7f6",
   "theme_color": "#1f3a34",
   "icons": [
-    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
-  ]
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "share_target": {
+    "action": "/share-target",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "files": [
+        {
+          "name": "file",
+          "accept": [
+            ".csv",
+            "text/csv",
+            "text/comma-separated-values",
+            ".ofx",
+            ".qfx",
+            ".qif",
+            "application/x-ofx",
+            "application/vnd.intu.qfx",
+            "text/plain"
+          ]
+        }
+      ]
+    }
+  }
 }

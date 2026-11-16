@@ -3,24 +3,59 @@ import { vaultStatus, type Session } from '../db/store';
 import { SessionContext, readPref } from './session';
 import { SetupScreen } from './SetupScreen';
 import { LockScreen } from './LockScreen';
+import { HomeView } from './HomeView';
 import { TransactionsView } from './TransactionsView';
-import { AccountsView } from './AccountsView';
+import { BudgetView } from './BudgetView';
+import { PlanView } from './PlanView';
+import { WealthView } from './WealthView';
 import { SettingsView } from './SettingsView';
+import { ShortcutHelp, useShortcuts } from './shortcuts';
+import { takeSharedFile } from './share';
+
+export type Tab = 'home' | 'transactions' | 'budget' | 'plan' | 'wealth' | 'settings';
+const TABS: [Tab, string][] = [
+  ['home', 'Home'],
+  ['transactions', 'Transactions'],
+  ['budget', 'Budget'],
+  ['plan', 'Plan'],
+  ['wealth', 'Wealth'],
+];
+
+export interface Nav {
+  go: (tab: Tab, sub?: string) => void;
+  sub: string | null;
+}
 
 type Phase = { kind: 'loading' } | { kind: 'new' } | { kind: 'locked' } | { kind: 'open'; session: Session };
-type Tab = 'transactions' | 'accounts' | 'settings';
+
+function readHash(): { tab: Tab; sub: string | null } {
+  const [tab, sub] = location.hash.replace('#', '').split('-');
+  const valid = [...TABS.map(([t]) => t), 'settings'] as string[];
+  return { tab: valid.includes(tab) ? (tab as Tab) : 'home', sub: sub ?? null };
+}
 
 export function App() {
   const [phase, setPhase] = useState<Phase>({ kind: 'loading' });
-  const [tab, setTab] = useState<Tab>('transactions');
+  const [{ tab, sub }, setRoute] = useState(readHash);
   const [hidden, setHidden] = useState(false);
+  const [sharedFile, setSharedFile] = useState<File | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
     vaultStatus()
       .then((s) => setPhase({ kind: s }))
       .catch(() => setPhase({ kind: 'new' }));
-    // Ask the browser not to evict our data under storage pressure.
     navigator.storage?.persist?.().catch(() => undefined);
+    const onHash = () => setRoute(readHash());
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+
+  const go = useCallback((t: Tab, s?: string) => {
+    const hash = s ? `${t}-${s}` : t;
+    if (location.hash.replace('#', '') !== hash) location.hash = hash;
+    setRoute({ tab: t, sub: s ?? null });
+    window.scrollTo(0, 0);
   }, []);
 
   const lock = useCallback(() => {
@@ -30,14 +65,22 @@ export function App() {
     });
   }, []);
 
-  const open = useCallback((session: Session) => {
-    setPhase({ kind: 'open', session });
-  }, []);
+  const open = useCallback(
+    async (session: Session) => {
+      setPhase({ kind: 'open', session });
+      // A file shared to the app (Android share sheet) waits until unlock.
+      const f = await takeSharedFile();
+      if (f) {
+        setSharedFile(f);
+        go('transactions', 'import');
+      }
+    },
+    [go],
+  );
 
   useAutoLock(phase.kind === 'open', lock);
+  useShortcuts(phase.kind === 'open', { go, lock, help: () => setShowHelp((v) => !v) });
 
-  // Blur the screen when the app goes to the background, so balances
-  // don't appear in the app switcher.
   useEffect(() => {
     const onVis = () => setHidden(document.visibilityState === 'hidden');
     const onBlur = () => setHidden(true);
@@ -63,40 +106,52 @@ export function App() {
     case 'locked':
       body = <LockScreen onUnlock={open} onErased={() => setPhase({ kind: 'new' })} />;
       break;
-    case 'open':
+    case 'open': {
+      const nav: Nav = { go, sub };
       body = (
         <SessionContext.Provider value={phase.session}>
           <div className="shell">
             <header className="topbar">
-              <div className="brand">
+              <button className="brand" onClick={() => go('home')} aria-label="Home">
                 <img src="/icon.svg" alt="" width={28} height={28} />
                 <span>MishMash</span>
-              </div>
-              <button className="btn ghost" onClick={lock} aria-label="Lock now">
-                Lock
               </button>
+              <nav className="topnav" aria-label="Sections">
+                {TABS.map(([id, label]) => (
+                  <button key={id} className={tab === id ? 'active' : ''} aria-current={tab === id} onClick={() => go(id)}>
+                    {label}
+                  </button>
+                ))}
+              </nav>
+              <div className="row">
+                <button className={'btn ghost ' + (tab === 'settings' ? 'active' : '')} onClick={() => go('settings')}>
+                  Settings
+                </button>
+                <button className="btn ghost" onClick={lock}>
+                  Lock
+                </button>
+              </div>
             </header>
             <main className="content">
-              {tab === 'transactions' && <TransactionsView onGoToAccounts={() => setTab('accounts')} />}
-              {tab === 'accounts' && <AccountsView />}
-              {tab === 'settings' && <SettingsView onErased={() => setPhase({ kind: 'new' })} />}
+              {tab === 'home' && <HomeView nav={nav} />}
+              {tab === 'transactions' && <TransactionsView nav={nav} sharedFile={sharedFile} clearShared={() => setSharedFile(null)} />}
+              {tab === 'budget' && <BudgetView nav={nav} />}
+              {tab === 'plan' && <PlanView nav={nav} />}
+              {tab === 'wealth' && <WealthView nav={nav} />}
+              {tab === 'settings' && <SettingsView onErased={() => setPhase({ kind: 'new' })} onHelp={() => setShowHelp(true)} />}
             </main>
             <nav className="tabbar" aria-label="Sections">
-              {(
-                [
-                  ['transactions', 'Transactions'],
-                  ['accounts', 'Accounts'],
-                  ['settings', 'Settings'],
-                ] as [Tab, string][]
-              ).map(([id, label]) => (
-                <button key={id} className={tab === id ? 'active' : ''} aria-current={tab === id} onClick={() => setTab(id)}>
+              {TABS.map(([id, label]) => (
+                <button key={id} className={tab === id ? 'active' : ''} aria-current={tab === id} onClick={() => go(id)}>
                   {label}
                 </button>
               ))}
             </nav>
+            {showHelp && <ShortcutHelp onClose={() => setShowHelp(false)} />}
           </div>
         </SessionContext.Provider>
       );
+    }
   }
 
   return <div className={hidden && phase.kind === 'open' ? 'privacy-blur' : ''}>{body}</div>;

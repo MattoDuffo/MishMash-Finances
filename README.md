@@ -5,17 +5,32 @@ encrypted on your own device. No bank connections, no server, no account, no tra
 
 See [docs/PLAN.md](docs/PLAN.md) for the full product plan and roadmap.
 
-## Status: Phase 0 prototype
+## Features
 
-- Create a vault protected by a passphrase (AES-256-GCM, PBKDF2-derived key)
-- Lock screen, auto-lock after inactivity, screen blur when the app is in the background
-- Accounts with opening balances and net worth
-- Add, edit, search and delete transactions with categories
-- Encrypted backup download and restore
-- Erase all data from the device
-- Installable PWA that works offline; strict Content Security Policy
+**Import**: CSV, OFX/QFX and QIF files from any bank. Columns, date formats and amount layouts are
+detected automatically and remembered per bank. Re-importing an overlapping statement skips what's
+already there. Every import can be undone. On Android the installed app accepts files from the share sheet.
 
-CSV import is the next phase.
+**Track**: Review inbox for new imports, rules, readable payee names, categories learned from your
+corrections, transfer detection, split transactions, search, filters and CSV export.
+
+**Budget**: Pick a method and switch at any time without losing data: zero-based, envelopes,
+50/30/20 or just tracking. Leftovers roll over, overspending can be covered from other categories,
+and targets (monthly or save-by-date) suggest how much to set aside.
+
+**Plan**: Bills, subscriptions and pay are found in your history, with price-rise alerts, a bill
+calendar, a cash-flow forecast, savings goals and an avalanche vs snowball debt payoff planner.
+
+**Wealth**: Accounts, plus assets and debts you value by hand (home, car, pension). Net worth over
+time, multiple currencies with your own exchange rates, and a Monte Carlo retirement projection.
+
+**Home**: Monthly recap, spending by category, six-month trend, upcoming bills and reminders.
+
+**Security**: Passphrase-encrypted storage (AES-256-GCM), optional Face ID / fingerprint unlock,
+auto-lock, screen blur in the app switcher, encrypted backups, no network requests (enforced by a
+Content Security Policy). Works offline and installs to the home screen.
+
+Keyboard shortcuts: press `?` in the app.
 
 ## Development
 
@@ -35,10 +50,11 @@ WebCrypto and service workers), and add the header `Content-Security-Policy: fra
 ## Project layout
 
 ```
-src/crypto/   passphrase-based encryption (WebCrypto)
+src/crypto/   passphrase and biometric encryption (WebCrypto, WebAuthn)
 src/db/       encrypted IndexedDB storage, backups
-src/domain/   data model, money parsing and formatting, default categories
-src/ui/       React screens
+src/import/   CSV/OFX/QIF parsing, column detection, import pipeline
+src/domain/   data model and all finance logic (budgets, recurring, forecast, debt, wealth, retirement)
+src/ui/       React screens and SVG charts
 public/       manifest, icon, service worker
 docs/         product plan
 ```

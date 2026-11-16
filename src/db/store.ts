@@ -20,7 +20,7 @@ import { COLLECTIONS, type CollectionName, type Collections, type Id } from '../
 import { defaultCategories } from '../domain/defaults';
 
 export const DB_NAME = 'mishmash';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const ENVELOPE_KEY = 'keyEnvelope';
 
 type StoredRecord = EncryptedBlob & { id: Id };
@@ -28,8 +28,10 @@ type StoredRecord = EncryptedBlob & { id: Id };
 async function open(): Promise<IDBPDatabase> {
   return openDB(DB_NAME, DB_VERSION, {
     upgrade(db) {
-      db.createObjectStore('meta');
-      for (const c of COLLECTIONS) db.createObjectStore(c, { keyPath: 'id' });
+      // Each version only adds stores, so creating whatever is missing works
+      // for fresh installs and upgrades alike.
+      if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta');
+      for (const c of COLLECTIONS) if (!db.objectStoreNames.contains(c)) db.createObjectStore(c, { keyPath: 'id' });
     },
   });
 }
@@ -61,26 +63,36 @@ export async function setupVault(passphrase: string, iterations?: number): Promi
 
 /** Unlocks an existing vault. Throws WrongPassphraseError on a bad passphrase. */
 export async function unlock(passphrase: string): Promise<Session> {
+  const envelope = await readMetaValue<KeyEnvelope>(ENVELOPE_KEY);
+  if (!envelope) throw new Error('There is no vault on this device yet.');
+  return openWithKey(await unlockVault(envelope, passphrase));
+}
+
+/** Reads an unencrypted meta value (key envelopes) before unlocking. */
+export async function readMetaValue<T>(key: string): Promise<T | undefined> {
   const db = await open();
-  const envelope = (await db.get('meta', ENVELOPE_KEY)) as KeyEnvelope | undefined;
-  if (!envelope) {
-    db.close();
-    throw new Error('There is no vault on this device yet.');
-  }
-  let key: CryptoKey;
   try {
-    key = await unlockVault(envelope, passphrase);
+    return (await db.get('meta', key)) as T | undefined;
+  } finally {
+    db.close();
+  }
+}
+
+/** Opens the vault with an already-unwrapped data key (e.g. from biometrics). */
+export async function openWithKey(key: CryptoKey): Promise<Session> {
+  const db = await open();
+  const cache = emptyCache();
+  try {
+    for (const c of COLLECTIONS) {
+      const rows = (await db.getAll(c)) as StoredRecord[];
+      for (const row of rows) {
+        const rec = await decryptJson<Collections[typeof c]>(key, row);
+        (cache[c] as Map<Id, unknown>).set(row.id, rec);
+      }
+    }
   } catch (e) {
     db.close();
     throw e;
-  }
-  const cache = emptyCache();
-  for (const c of COLLECTIONS) {
-    const rows = (await db.getAll(c)) as StoredRecord[];
-    for (const row of rows) {
-      const rec = await decryptJson<Collections[typeof c]>(key, row);
-      (cache[c] as Map<Id, unknown>).set(row.id, rec);
-    }
   }
   return new Session(db, key, cache);
 }
@@ -91,7 +103,7 @@ export async function wipeDevice(): Promise<void> {
 }
 
 type Cache = { [K in CollectionName]: Map<Id, Collections[K]> };
-const emptyCache = (): Cache => ({ accounts: new Map(), categories: new Map(), transactions: new Map() });
+const emptyCache = (): Cache => Object.fromEntries(COLLECTIONS.map((c) => [c, new Map()])) as unknown as Cache;
 
 export class Session {
   private listeners = new Set<() => void>();
@@ -119,6 +131,35 @@ export class Session {
     this.emit();
   }
 
+  /** Writes many records in one IndexedDB transaction (used by imports). */
+  async putMany<K extends CollectionName>(c: K, records: Collections[K][]): Promise<void> {
+    this.assertOpen();
+    const blobs = await Promise.all(records.map(async (r) => ({ id: r.id, ...(await encryptJson(this.key, r)) })));
+    const tx = this.db.transaction(c, 'readwrite');
+    await Promise.all([...blobs.map((b) => tx.store.put(b)), tx.done]);
+    for (const r of records) this.cache[c].set(r.id, r);
+    this.emit();
+  }
+
+  async deleteMany(c: CollectionName, ids: Id[]): Promise<void> {
+    this.assertOpen();
+    const tx = this.db.transaction(c, 'readwrite');
+    await Promise.all([...ids.map((id) => tx.store.delete(id)), tx.done]);
+    for (const id of ids) this.cache[c].delete(id);
+    this.emit();
+  }
+
+  /** The current data key wrapped differently, e.g. for biometric unlock. */
+  async readMeta<T>(key: string): Promise<T | undefined> {
+    return (await this.db.get('meta', key)) as T | undefined;
+  }
+
+  async writeMeta(key: string, value: unknown): Promise<void> {
+    this.assertOpen();
+    if (value === undefined) await this.db.delete('meta', key);
+    else await this.db.put('meta', value, key);
+  }
+
   async delete(c: CollectionName, id: Id): Promise<void> {
     this.assertOpen();
     await this.db.delete(c, id);
@@ -126,9 +167,13 @@ export class Session {
     this.emit();
   }
 
+  async envelope(): Promise<KeyEnvelope> {
+    return (await this.db.get('meta', ENVELOPE_KEY)) as KeyEnvelope;
+  }
+
   async changePassphrase(oldPassphrase: string, newPassphrase: string): Promise<void> {
     this.assertOpen();
-    const envelope = (await this.db.get('meta', ENVELOPE_KEY)) as KeyEnvelope;
+    const envelope = await this.envelope();
     await this.db.put('meta', await rewrap(envelope, oldPassphrase, newPassphrase), ENVELOPE_KEY);
   }
 

@@ -78,7 +78,7 @@ async function wrapDataKey(dataKeyRaw: Uint8Array, passphrase: string, iteration
   return { version: 1, salt: toBase64(salt), iterations, iv: toBase64(iv), wrappedKey: toBase64(wrapped) };
 }
 
-function importDataKey(raw: Uint8Array): Promise<CryptoKey> {
+export function importDataKey(raw: Uint8Array): Promise<CryptoKey> {
   // Non-extractable: once imported, the raw key bytes can't be read back out.
   return subtle().importKey('raw', raw, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
 }
@@ -90,7 +90,7 @@ export class WrongPassphraseError extends Error {
   }
 }
 
-async function unwrapRaw(envelope: KeyEnvelope, passphrase: string): Promise<Uint8Array> {
+export async function unwrapRaw(envelope: KeyEnvelope, passphrase: string): Promise<Uint8Array> {
   const kek = await deriveWrappingKey(passphrase, fromBase64(envelope.salt), envelope.iterations);
   try {
     return new Uint8Array(

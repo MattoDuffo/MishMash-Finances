@@ -1,5 +1,7 @@
-import { useState, type FormEvent } from 'react';
-import { unlock, wipeDevice, restoreBackup, type Session } from '../db/store';
+import { useEffect, useState, type FormEvent } from 'react';
+import { unlock, wipeDevice, restoreBackup, readMetaValue, openWithKey, type Session } from '../db/store';
+import { unlockWithBiometric } from '../crypto/biometric';
+import type { Biometric } from '../domain/types';
 import { WrongPassphraseError } from '../crypto/vault';
 import { RestoreForm } from './RestoreForm';
 
@@ -8,6 +10,23 @@ export function LockScreen({ onUnlock, onErased }: { onUnlock: (s: Session) => v
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [mode, setMode] = useState<'unlock' | 'erase' | 'restore'>('unlock');
+  const [bio, setBio] = useState<Biometric | null>(null);
+
+  useEffect(() => {
+    readMetaValue<Biometric>('biometric').then((b) => setBio(b ?? null)).catch(() => undefined);
+  }, []);
+
+  const unlockBio = async () => {
+    if (!bio) return;
+    setBusy(true);
+    setError('');
+    try {
+      onUnlock(await openWithKey(await unlockWithBiometric(bio)));
+    } catch (err) {
+      setError((err as Error).name === 'NotAllowedError' ? 'Biometric unlock was cancelled. Use your passphrase instead.' : (err as Error).message || 'Biometric unlock failed. Use your passphrase instead.');
+      setBusy(false);
+    }
+  };
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -38,6 +57,11 @@ export function LockScreen({ onUnlock, onErased }: { onUnlock: (s: Session) => v
       <form className="panel narrow" onSubmit={submit}>
         <img src="/icon.svg" alt="" width={56} height={56} />
         <h1>MishMash is locked</h1>
+        {bio && (
+          <button type="button" className="btn primary block" onClick={unlockBio} disabled={busy}>
+            Unlock with Face ID / fingerprint
+          </button>
+        )}
         <label htmlFor="lock-pass">Passphrase</label>
         <input
           id="lock-pass"
@@ -45,14 +69,14 @@ export function LockScreen({ onUnlock, onErased }: { onUnlock: (s: Session) => v
           autoComplete="current-password"
           value={pass}
           onChange={(e) => setPass(e.target.value)}
-          autoFocus
+          autoFocus={!bio}
         />
         {error && (
           <p className="error" role="alert">
             {error}
           </p>
         )}
-        <button className="btn primary block" disabled={busy || !pass}>
+        <button className={'btn block ' + (bio ? '' : 'primary')} disabled={busy || !pass}>
           {busy ? 'Unlocking…' : 'Unlock'}
         </button>
 

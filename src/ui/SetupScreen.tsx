@@ -41,7 +41,7 @@ export function SetupScreen({ onReady }: { onReady: (s: Session) => void }) {
   return (
     <div className="center-screen">
       <form className="panel narrow" onSubmit={submit}>
-        <img src="/icon.svg" alt="" width={56} height={56} />
+        <img src={`${import.meta.env.BASE_URL}icon.svg`} alt="" width={56} height={56} />
         <h1>Welcome to MishMash</h1>
         <p className="lede">
           Your finances stay on this device. Nothing is uploaded, and there’s no account to sign up for.

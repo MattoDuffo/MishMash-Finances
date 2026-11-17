@@ -1,10 +1,13 @@
 // MishMash Finances service worker.
 // Makes the app work offline. It only caches the app's own files; financial
 // data lives in IndexedDB (encrypted) and never passes through here.
-const CACHE = 'mishmash-shell-v2';
+const CACHE = 'mishmash-shell-v3';
+// The app may live in a sub-folder (e.g. GitHub Pages: /MishMash-Finances/).
+const BASE = new URL(self.registration.scope).pathname;
+const INDEX = BASE + 'index.html';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(['/', '/index.html'])));
+  event.waitUntil(caches.open(CACHE).then((c) => c.addAll([BASE, INDEX])));
   self.skipWaiting();
 });
 
@@ -20,7 +23,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url);
 
   // Share target: hold the shared file until the app is unlocked and reads it.
-  if (req.method === 'POST' && url.pathname === '/share-target') {
+  if (req.method === 'POST' && url.pathname === BASE + 'share-target') {
     event.respondWith(
       (async () => {
         const form = await req.formData();
@@ -29,7 +32,7 @@ self.addEventListener('fetch', (event) => {
           const cache = await caches.open('mishmash-share');
           await cache.put('/shared-file', new Response(file, { headers: { 'x-file-name': encodeURIComponent(file.name) } }));
         }
-        return Response.redirect('/?shared=1#transactions-import', 303);
+        return Response.redirect(BASE + '?shared=1#transactions-import', 303);
       })(),
     );
     return;
@@ -43,10 +46,10 @@ self.addEventListener('fetch', (event) => {
       fetch(req)
         .then((res) => {
           const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put('/index.html', copy));
+          caches.open(CACHE).then((c) => c.put(INDEX, copy));
           return res;
         })
-        .catch(() => caches.match('/index.html')),
+        .catch(() => caches.match(INDEX)),
     );
     return;
   }

@@ -44,8 +44,19 @@ npm run preview   # serve the production build locally
 
 ## Deploying
 
-`dist/` is a static site that can go on any static host. Serve it over HTTPS (required for
-WebCrypto and service workers), and add the header `Content-Security-Policy: frame-ancestors 'none'`.
+The app is deployed to **GitHub Pages** by `.github/workflows/deploy.yml` on every push to `main`
+(tests run first; a failing test stops the deploy). It's served at
+`https://<owner>.github.io/<repo>/`, for this repository
+**https://mattoduffo.github.io/MishMash-Finances/**.
+
+One-time setup in the repository's **Settings → Pages**: set **Source** to **GitHub Actions**.
+GitHub Pages needs a public repository on a free account (or GitHub Pro/Team for a private one).
+
+The build reads `BASE_PATH` (set automatically by the workflow) so it works from a sub-folder.
+To host it elsewhere, run `npm run build` and upload `dist/` to any static HTTPS host; ideally also
+send the header `Content-Security-Policy: frame-ancestors 'none'` (GitHub Pages can't set headers).
+
+Other branches and pull requests run tests and a build via `.github/workflows/test.yml`.
 
 ## Project layout
 

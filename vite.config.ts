@@ -33,7 +33,11 @@ function cspPlugin(): Plugin {
   };
 }
 
+// BASE_PATH is set by the GitHub Pages workflow (e.g. "/MishMash-Finances/").
+const base = process.env.BASE_PATH ? process.env.BASE_PATH.replace(/\/?$/, '/') : '/';
+
 export default defineConfig({
+  base,
   plugins: [react(), cspPlugin()],
   test: {
     environment: 'node',

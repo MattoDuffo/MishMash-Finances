@@ -55,7 +55,7 @@ export function LockScreen({ onUnlock, onErased }: { onUnlock: (s: Session) => v
   return (
     <div className="center-screen">
       <form className="panel narrow" onSubmit={submit}>
-        <img src="/icon.svg" alt="" width={56} height={56} />
+        <img src={`${import.meta.env.BASE_URL}icon.svg`} alt="" width={56} height={56} />
         <h1>MishMash is locked</h1>
         {bio && (
           <button type="button" className="btn primary block" onClick={unlockBio} disabled={busy}>

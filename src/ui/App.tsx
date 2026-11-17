@@ -113,7 +113,7 @@ export function App() {
           <div className="shell">
             <header className="topbar">
               <button className="brand" onClick={() => go('home')} aria-label="Home">
-                <img src="/icon.svg" alt="" width={28} height={28} />
+                <img src={`${import.meta.env.BASE_URL}icon.svg`} alt="" width={28} height={28} />
                 <span>MishMash</span>
               </button>
               <nav className="topnav" aria-label="Sections">

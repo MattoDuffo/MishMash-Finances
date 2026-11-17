@@ -2,21 +2,21 @@
   "name": "MishMash Finances",
   "short_name": "MishMash",
   "description": "Private personal finance. Your data stays on your device.",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#f5f7f6",
   "theme_color": "#1f3a34",
   "icons": [
     {
-      "src": "/icon.svg",
+      "src": "icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ],
   "share_target": {
-    "action": "/share-target",
+    "action": "share-target",
     "method": "POST",
     "enctype": "multipart/form-data",
     "params": {

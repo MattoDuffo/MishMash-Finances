@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type DragEvent } from 'react';
 import { useSession } from './session';
-import { parseCsv, detectDelimiter } from '../import/csv';
+import { parseCsv, detectDelimiter, findTableStart } from '../import/csv';
 import { DATE_FORMATS, detectDateFormats } from '../import/dates';
 import { guessMapping, headerSignature, type Mapping } from '../import/mapping';
 import { extractRows, planImport, type PlanItem, type RawRow, type RowError } from '../import/pipeline';
@@ -33,7 +33,9 @@ export function ImportView({ initialFile, onClose, onReview }: { initialFile?: F
         setFile({ kind, name: f.name, raw: r.rows, errors: r.errors });
       } else {
         const delimiter = detectDelimiter(text);
-        const rows = parseCsv(text, delimiter);
+        // Some banks put account details above the table; skip to the header.
+        const all = parseCsv(text, delimiter);
+        const rows = all.slice(findTableStart(all));
         if (rows.length === 0) throw new Error('This file is empty.');
         if (rows[0].length < 2) throw new Error('This doesn’t look like a CSV file with columns. Check that you exported CSV from your bank.');
         setFile({ kind: 'csv', name: f.name, rows, delimiter });
@@ -118,7 +120,7 @@ function ImportWizard({ loaded, onCancel, onDone }: { loaded: Loaded; onCancel: 
   const currency = account?.currency ?? 'USD';
 
   const [mapping, setMapping] = useState<Mapping | null>(() =>
-    loaded.kind !== 'csv' ? null : template ? { ...template } : guessMapping(loaded.rows, loaded.delimiter, navigator.language !== 'en-US'),
+    loaded.kind !== 'csv' ? null : template ? { ...template } : guessMapping(loaded.rows, loaded.delimiter, getSettings(s).baseCurrency !== 'USD'),
   );
   const [saveTemplate, setSaveTemplate] = useState(true);
   const [step, setStep] = useState<'map' | 'preview'>(loaded.kind === 'csv' && !template ? 'map' : 'preview');

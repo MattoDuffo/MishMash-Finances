@@ -14,7 +14,7 @@ const KINDS: [AccountKind, string][] = [
   ['savings', 'Savings'],
   ['credit', 'Credit card'],
   ['cash', 'Cash'],
-  ['investment', 'Investments / pension'],
+  ['investment', 'Investments / CPF / SRS'],
   ['loan', 'Loan / mortgage'],
   ['property', 'Property'],
   ['vehicle', 'Vehicle'],
@@ -22,7 +22,7 @@ const KINDS: [AccountKind, string][] = [
   ['liability', 'Other debt'],
   ['other', 'Other'],
 ];
-export const CURRENCIES = ['USD', 'CAD', 'GBP', 'EUR', 'AUD', 'NZD', 'CHF', 'JPY', 'SEK', 'NOK', 'DKK', 'INR', 'MXN', 'BRL', 'ZAR', 'SGD', 'HKD'];
+export const CURRENCIES = ['SGD', 'USD', 'MYR', 'EUR', 'GBP', 'AUD', 'JPY', 'HKD', 'CNY', 'IDR', 'THB', 'INR', 'NZD', 'CAD', 'CHF', 'KRW', 'TWD', 'PHP', 'VND'];
 
 const SECTIONS: [string, string][] = [
   ['accounts', 'Accounts'],

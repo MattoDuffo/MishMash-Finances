@@ -123,8 +123,8 @@ describe('wealth', () => {
     expect(balanceOn(house, '2025-11-01', [], vals)).toBe(0);
   });
   it('converts currencies and reports missing rates', () => {
-    expect(netWorthOn([house, eur], '2026-11-01', [], vals, DEFAULT_SETTINGS).missingRates).toEqual(['EUR']);
-    expect(netWorthOn([house, eur], '2026-11-01', [], vals, { ...DEFAULT_SETTINGS, exchangeRates: { EUR: 1.1 } }).net).toBe(42000000 + 11000);
+    expect(netWorthOn([house, eur], '2026-11-01', [], vals, { ...DEFAULT_SETTINGS, baseCurrency: 'USD' }).missingRates).toEqual(['EUR']);
+    expect(netWorthOn([house, eur], '2026-11-01', [], vals, { ...DEFAULT_SETTINGS, baseCurrency: 'USD', exchangeRates: { EUR: 1.1 } }).net).toBe(42000000 + 11000);
   });
 });
 

@@ -4,17 +4,18 @@
  */
 
 const PREFIXES = [
-  /^(sq|sqr|tst|sp|pp|paypal|py|ext|dd|so|bp|fpi|fpo|bgc|pos|vis|visa|dbt|chk|ach|ckcd|purchase|debit card purchase|card purchase|recurring payment|preauthorized debit|pos purchase|pos debit|contactless|cnp)\s*[*#:-]?\s*/i,
+  /^(sq|sqr|tst|sp|pp|paypal|py|ext|dd|so|bp|fpi|fpo|bgc|pos|vis|visa|dbt|chk|ach|ckcd|purchase|debit card purchase|card purchase|recurring payment|preauthorized debit|pos purchase|pos debit|contactless|cnp|nets qr payment|nets qr|nets|paynow transfer|paynow|fast payment|fast transfer|giro payment|giro|ibg|mst|debit purchase|visa debit|point-of-sale transaction|eps)(?:\s*[*#:-]\s*|\s+)/i,
 ];
 const NOISE = [
   /\b(x{2,}|\*{2,})\d{2,}\b/gi, // masked card numbers
   /\b\d{4,}\b/g, // long numbers: store ids, references
   /\b\d{1,2}[/-]\d{1,2}([/-]\d{2,4})?\b/g, // dates
   /\b(ref|reference|id|auth|trace|card)\s*[:#]?\s*\w*\d\w*\b/gi,
+  /\s+(singapore|si ng|sgp?)\b.*$/i, // trailing "SINGAPORE SG" location
   /\s+[A-Z]{2}\s*$/, // trailing state/country code
   /\bwww\.|\.com\b|\.co\.uk\b/gi,
 ];
-const KEEP_UPPER = new Set(['ATM', 'ACH', 'USA', 'UK', 'BP', 'IKEA', 'H&M', 'TJ', 'CVS', 'AT&T', 'KFC', 'HMRC', 'EE', 'O2', 'LLC']);
+const KEEP_UPPER = new Set(['ATM', 'ACH', 'USA', 'UK', 'MRT', 'LRT', 'SBS', 'SMRT', 'HDB', 'CPF', 'IRAS', 'NTUC', 'SP', 'NETS', 'ERP', 'DBS', 'POSB', 'OCBC', 'UOB', 'BP', 'IKEA', 'H&M', 'TJ', 'CVS', 'AT&T', 'KFC', 'HMRC', 'EE', 'O2', 'LLC']);
 
 export function cleanPayee(raw: string): string {
   let s = raw.replace(/\s+/g, ' ').trim();
@@ -43,11 +44,16 @@ export function cleanPayee(raw: string): string {
   const isAllCaps = s === s.toUpperCase();
   return s
     .split(' ')
-    .map((w) => {
-      if (KEEP_UPPER.has(w.toUpperCase())) return w.toUpperCase();
-      if (!isAllCaps) return w;
-      return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
-    })
+    .map((word) =>
+      word
+        .split('/')
+        .map((w) => {
+          if (KEEP_UPPER.has(w.toUpperCase())) return w.toUpperCase();
+          if (!isAllCaps) return w;
+          return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+        })
+        .join('/'),
+    )
     .join(' ');
 }
 

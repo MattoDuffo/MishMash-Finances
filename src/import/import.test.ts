@@ -164,3 +164,43 @@ describe('ofx and qif', () => {
     ]);
   });
 });
+
+import { findTableStart } from './csv';
+
+describe('Singapore bank exports', () => {
+  it('skips account details above the table and footer lines below it', () => {
+    const text = `Account Details For:,Example Savings Account 123-456789-0
+Statement as at:,17 Nov 2026
+Available Balance:,"12,345.67"
+
+Transaction Date,Reference,Debit Amount,Credit Amount,Transaction Ref1,Transaction Ref2
+03 Nov 2026,POS,4.50,,NETS QR PAYMENT KOPI CORNER,
+05 Nov 2026,ICT,,"7,200.00",SALARY EXAMPLE PTE LTD,
+07 Nov 2026,MST,12.90,,POINT-OF-SALE TRANSACTION NEIGHBOURHOOD MART 1234 SINGAPORE SG,
+Total,,17.40,"7,200.00",,`;
+    const all = parseCsv(text, detectDelimiter(text));
+    const rows = all.slice(findTableStart(all));
+    expect(rows[0][0]).toBe('Transaction Date');
+    const m = guessMapping(rows, ',', true);
+    expect(m).toMatchObject({ dateFormat: 'D MMM YYYY', amountMode: 'debit-credit' });
+    expect(rows[0][m.payeeColumn]).toBe('Transaction Ref1');
+    const out = extractRows(rows, m, 'SGD');
+    expect(out.errors).toEqual([]);
+    expect(out.rows.map((r) => [r.date, r.amount])).toEqual([
+      ['2026-11-03', -450],
+      ['2026-11-05', 720000],
+      ['2026-11-07', -1290],
+    ]);
+  });
+
+  it.each([
+    ['NETS QR PAYMENT KOPI CORNER', 'Kopi Corner'],
+    ['POINT-OF-SALE TRANSACTION NEIGHBOURHOOD MART 1234 SINGAPORE SG', 'Neighbourhood Mart'],
+    ['PAYNOW TRANSFER JOHN TAN', 'John Tan'],
+    ['BUS/MRT 123456789 SINGAPORE', 'Bus/MRT'],
+    ['NETFLIX.COM', 'Netflix'],
+    ['FAST FOOD PLACE', 'Fast Food Place'],
+  ])('cleans %s', (raw, clean) => {
+    expect(cleanPayee(raw)).toBe(clean);
+  });
+});

@@ -10,7 +10,7 @@ export function headerSignature(header: string[]): string {
 
 const FIND = {
   date: /^(transaction |trans\.? |posted |posting |value |booking )?date$|^date|datum|fecha/i,
-  payee: /description|payee|merchant|name|narrative|details|beneficiary|counterparty|transaction$/i,
+  payee: /description|payee|merchant|name|narrative|details|beneficiary|counterparty|transaction$|ref(erence)?\s*1$/i,
   memo: /memo|reference|notes?$|additional|particulars/i,
   amount: /^amount$|^amount \(|^value$|^transaction amount|betrag|importe|montant|^amt$/i,
   debit: /debit|withdrawal|money out|paid out|outflow|^out$/i,
@@ -27,14 +27,16 @@ export function guessMapping(rows: string[][], delimiter: string, preferDayFirst
   const data = rows.slice(hasHeader ? 1 : 0, (hasHeader ? 1 : 0) + 50);
   const cols = header.length;
   const col = (i: number) => data.map((r) => r[i] ?? '');
+  // Footer rows like "Total" have no digits in the date column; ignore them.
+  const dates = (i: number) => col(i).filter((v) => /\d/.test(v));
   const find = (re: RegExp, exclude: number[] = []) => header.findIndex((h, i) => !exclude.includes(i) && re.test(h));
 
   // Date: header match that parses, else first column that parses as dates.
   let dateColumn = find(FIND.date);
-  if (dateColumn < 0 || detectDateFormats(col(dateColumn)).length === 0) {
-    dateColumn = [...Array(cols).keys()].find((i) => detectDateFormats(col(i)).length > 0) ?? 0;
+  if (dateColumn < 0 || detectDateFormats(dates(dateColumn)).length === 0) {
+    dateColumn = [...Array(cols).keys()].find((i) => detectDateFormats(dates(i)).length > 0) ?? 0;
   }
-  const dateFormat = detectDateFormats(col(dateColumn), preferDayFirst)[0] ?? 'YYYY-MM-DD';
+  const dateFormat = detectDateFormats(dates(dateColumn), preferDayFirst)[0] ?? 'YYYY-MM-DD';
 
   const numeric = (i: number) => {
     const vals = col(i).filter(Boolean);
@@ -65,7 +67,10 @@ export function guessMapping(rows: string[][], delimiter: string, preferDayFirst
     let bestDistinct = -1;
     for (let i = 0; i < cols; i++) {
       if (used.includes(i) || numeric(i)) continue;
-      const distinct = new Set(col(i)).size;
+      // Prefer long, varied text (descriptions) over short codes like "POS".
+      const vals = col(i).filter(Boolean);
+      const avgLen = vals.reduce((n, v) => n + v.length, 0) / Math.max(1, vals.length);
+      const distinct = new Set(vals).size * avgLen;
       if (distinct > bestDistinct) {
         best = i;
         bestDistinct = distinct;

@@ -68,10 +68,29 @@ export function parseAmount(input: string, currency = 'USD'): Minor | null {
   return negative ? -value : value;
 }
 
-export function formatMoney(amount: Minor, currency = 'USD', locale?: string): string {
+/** Shows each currency the way it's written at home, e.g. SGD as $12.50. */
+const HOME_LOCALE: Record<string, string> = {
+  SGD: 'en-SG',
+  USD: 'en-US',
+  GBP: 'en-GB',
+  EUR: 'en-IE',
+  AUD: 'en-AU',
+  NZD: 'en-NZ',
+  CAD: 'en-CA',
+  MYR: 'en-MY',
+  HKD: 'en-HK',
+  INR: 'en-IN',
+};
+
+/** The locale a currency is normally written in, if known. */
+export function homeLocale(currency: string): string | undefined {
+  return HOME_LOCALE[currency.toUpperCase()];
+}
+
+export function formatMoney(amount: Minor, currency = 'SGD', locale?: string): string {
   const exp = currencyExponent(currency);
   try {
-    return new Intl.NumberFormat(locale, {
+    return new Intl.NumberFormat(locale ?? HOME_LOCALE[currency.toUpperCase()], {
       style: 'currency',
       currency,
       minimumFractionDigits: exp,

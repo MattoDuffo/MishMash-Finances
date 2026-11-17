@@ -41,13 +41,13 @@ export function writePref(key: string, value: unknown): void {
   }
 }
 
-import { formatMoney, currencyExponent } from '../domain/money';
+import { formatMoney, currencyExponent, homeLocale } from '../domain/money';
 
 /** Compact axis labels: $1.2k, $35k, $1.4M. */
 export function compactMoney(amount: number, currency = 'USD'): string {
   const v = amount / 10 ** currencyExponent(currency);
   try {
-    return new Intl.NumberFormat(undefined, { style: 'currency', currency, notation: 'compact', maximumFractionDigits: 1 }).format(v);
+    return new Intl.NumberFormat(homeLocale(currency), { style: 'currency', currency, notation: 'compact', maximumFractionDigits: 1 }).format(v);
   } catch {
     return formatMoney(amount, currency);
   }

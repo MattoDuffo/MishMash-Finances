@@ -2,11 +2,11 @@ import type { Category, CategoryGroup } from './types';
 import { newId } from './types';
 
 const DEFAULTS: [CategoryGroup, string[]][] = [
-  ['income', ['Salary', 'Other income']],
-  ['bills', ['Rent / mortgage', 'Utilities', 'Phone & internet', 'Insurance', 'Subscriptions']],
-  ['everyday', ['Groceries', 'Transport', 'Fuel', 'Health', 'Household']],
-  ['lifestyle', ['Eating out', 'Entertainment', 'Shopping', 'Travel', 'Gifts']],
-  ['savings', ['Emergency fund', 'Investments']],
+  ['income', ['Salary', 'Bonus', 'Other income']],
+  ['bills', ['Rent / mortgage', 'Town council', 'Utilities', 'Phone & internet', 'Insurance', 'Subscriptions', 'Income tax']],
+  ['everyday', ['Groceries', 'Hawker & food court', 'Public transport', 'Grab & taxi', 'Car', 'Health', 'Household']],
+  ['lifestyle', ['Eating out', 'Entertainment', 'Shopping', 'Travel', 'Gifts & ang bao']],
+  ['savings', ['Emergency fund', 'Investments', 'CPF & SRS top-ups']],
   ['transfer', ['Transfer']],
 ];
 

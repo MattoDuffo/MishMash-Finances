@@ -8,6 +8,13 @@ Goodbudget, Empower, Kubera, Rocket Money, Actual Budget, Firefly III and Tiller
 **It never connects to live financial data.** You import CSV files you export from your bank.
 Everything is stored encrypted on your own device. There is no server, no account and no tracking.
 
+## Region
+
+Built for Singapore first: SGD is the default currency, dates are read day-first, default categories
+include Town council, Hawker & food court, Public transport, Grab & taxi, Income tax and CPF & SRS
+top-ups, and the importer skips the account-details block that local bank CSV exports put above
+the transaction table. Other currencies work with manual exchange rates.
+
 ## Principles
 
 1. **CSV only.** No bank linking and no aggregators (Plaid, TrueLayer and so on).

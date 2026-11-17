@@ -4,15 +4,15 @@ import type { Settings } from './types';
 export const DEFAULT_SETTINGS: Settings = {
   id: 'settings',
   budgetMethod: 'zero-based',
-  baseCurrency: 'USD',
+  baseCurrency: 'SGD',
   exchangeRates: {},
   split503020: { needs: 50, wants: 30, savings: 20 },
   retirement: {
     currentAge: 35,
     retireAge: 65,
     endAge: 95,
-    monthlyContribution: 50000,
-    annualSpending: 4000000,
+    monthlyContribution: 100000,
+    annualSpending: 4800000,
     expectedReturn: 6,
     volatility: 15,
     inflation: 2.5,

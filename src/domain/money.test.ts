@@ -32,5 +32,6 @@ describe('parseAmount', () => {
 describe('formatMoney', () => {
   it('formats minor units', () => {
     expect(formatMoney(-123456, 'USD', 'en-US')).toBe('-$1,234.56');
+    expect(formatMoney(123456, 'SGD')).toBe('$1,234.56');
   });
 });

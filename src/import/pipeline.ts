@@ -37,6 +37,8 @@ export function extractRows(
   for (let i = start; i < rows.length; i++) {
     const r = rows[i];
     const line = i + 1;
+    // Footer lines (totals, balances, notes) have no date: skip them quietly.
+    if (!/\d/.test(r[m.dateColumn] ?? '') || r.filter((c) => c).length < 2) continue;
     const date = parseDate(r[m.dateColumn] ?? '', m.dateFormat);
     if (!date) {
       errors.push({ line, reason: `Date “${r[m.dateColumn] ?? ''}” doesn’t match ${m.dateFormat}` });
